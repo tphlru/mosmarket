@@ -76,11 +76,12 @@ def update_dataframe(old_df, new_df):
 
 @eel.expose
 def trytocreatediranswer(answer):
-    try:
-        os.makedirs(path)
-        print(f"Directory created at {path}")
-    except OSError as error:
-        print(f"Directory creation failed: {error}")
+    if answer is True:
+        try:
+            os.makedirs(path)
+            print(f"Directory created at {path}")
+        except OSError as error:
+            print(f"Directory creation failed: {error}")
 
     print(answer)
 

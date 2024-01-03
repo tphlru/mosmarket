@@ -73,9 +73,14 @@ $('#unselectall').on('click', function () {
     table.draw()
 })
 
-eel.expose(trytocreatedirask)
+eel.expose(callalert)
 
-function trytocreatedirask(dirpath) {
+function callalert(text, alerttype = "info") {
+    if (alerttype === "info") {
+        alert(text)
+    } else if (alerttype === "confirm") {
+
+    }
     ask_answer = confirm(dirpath + " Указанный путь невалидный или директория не существует! Попробовать создать?")
     console.log(ask_answer)
     eel.trytocreatediranswer(ask_answer)
