@@ -1,6 +1,7 @@
 import sys
 import os
 import pathlib
+import time
 
 import tkinter as tk
 from tkinter import filedialog
@@ -23,6 +24,7 @@ eel.say_hello_js('connected!')  # Call a Javascript function
 
 filter_list = [False, False, False]
 stocks_to_fetch = []
+savetypes = {'txt': True, 'csv': False, 'sqlite': False}
 workdirpath = "./workdir/"
 
 
@@ -75,32 +77,37 @@ def update_dataframe(old_df, new_df):
 
 
 @eel.expose
-def trytocreatediranswer(answer):
-    if answer is True:
-        try:
-            os.makedirs(path)
-            print(f"Directory created at {path}")
-        except OSError as error:
-            print(f"Directory creation failed: {error}")
+def callalertpy(data):
+    eel.callalert(data)
 
-    print(answer)
+
+def createworkdir(parentdirpath):
+    try:
+        newdirpath = os.path.join(parentdirpath, "algopack-data")
+        if not os.path.exists(newdirpath):
+            os.makedirs(newdirpath)
+            print(f"Directory created at {newdirpath}")
+        else:
+            print("Directory already exists!")
+    except Exception as error:
+        print(f"Directory creation failed: {error}")
 
 
 @eel.expose
 def select_workdir(manualpath=None):
     global workdirpath
     if manualpath:
-        if check_and_format_path(manualpath) is not None:
-            workdirpath
-            workdirpath = check_and_format_path(manualpath)
-            eel.loadWorkdirPath(workdirpath)
+        sourcepath = manualpath
+        workdirpath = check_and_format_path(manualpath)
+        eel.loadWorkdirPath(workdirpath)
     else:
         tk.Tk().withdraw()
         workdirpath = filedialog.askdirectory()
+        sourcepath = workdirpath
         eel.loadWorkdirPath(check_and_format_path(workdirpath))
 
     if workdirpath == "Invalid path!":
-        eel.trytocreatedirask(workdirpath)
+        callalertpy("Указан неправильный путь: " + sourcepath)
 
     print(workdirpath)
 
@@ -145,6 +152,13 @@ def button_click(btn_id, status):
     if btn_id == "selectpath":
         select_workdir()
     print(f'Button ID: {btn_id}, Status: {status}')
+
+
+@eel.expose
+def select_savetype_upd(savetypeslist):
+    global savetypes
+    savetypes = {'txt': savetypeslist[0], 'csv': savetypeslist[1], 'sqlite': savetypeslist[2]}
+    print(savetypes)
 
 
 eel.start('index.html', mode='chrome', size=(1200, 500), port=0)

@@ -75,15 +75,8 @@ $('#unselectall').on('click', function () {
 
 eel.expose(callalert)
 
-function callalert(text, alerttype = "info") {
-    if (alerttype === "info") {
-        alert(text)
-    } else if (alerttype === "confirm") {
-
-    }
-    ask_answer = confirm(dirpath + " Указанный путь невалидный или директория не существует! Попробовать создать?")
-    console.log(ask_answer)
-    eel.trytocreatediranswer(ask_answer)
+function callalert(showtext) {
+    alert(showtext)
 }
 
 // Define a function that takes an optional argument
@@ -166,9 +159,9 @@ function say_hello_js(x) {
     console.log("Hello from " + x);
 }
 
-let ids = ["listing1", "listing2", "listing3", "launch", "selectpath"]; //  update this array with ids
+let btnids = ["listing1", "listing2", "listing3", "launch", "selectpath"]; //  update this array with ids
 
-ids.forEach(function (id) {
+btnids.forEach(function (id) {
         let element = document.getElementById(id);
         if (element) {
             element.onclick = function () {
@@ -190,6 +183,26 @@ ids.forEach(function (id) {
         }
     }
 );
+
+
+let select_savetype = ["select-savetxt", "select-savecsv", "select-savesqlite"]
+let savetypelist = [true, false, false]
+
+select_savetype.forEach(function (id) {
+    let element = document.getElementById(id);
+    if (element) {
+        element.onclick = function () {
+            $(this).toggleClass('btn-primary btn-secondary');
+            if (this.classList.contains("btn-primary")) {
+                savetypelist[select_savetype.indexOf(id)] = true;
+            } else if (this.classList.contains("btn-secondary")) {
+                savetypelist[select_savetype.indexOf(id)] = false;
+            }
+            eel.select_savetype_upd(savetypelist)
+        }
+    }
+});
+
 
 eel.expose(gentable);               // Expose this function to Python
 function gentable(data) {

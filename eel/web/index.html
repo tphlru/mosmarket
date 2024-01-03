@@ -132,14 +132,11 @@
             <label for="saveformat_select">Выберите форматы сохранения:</label>
             <div class="d-flex align-items-center">
                 <div>
-                    <button type="button" class="btn btn-primary mr-1"
-                            onclick="$(this).toggleClass('btn-primary btn-secondary');">Текстовый документ (.txt)
+                    <button type="button" id="select-savetxt" class="btn btn-primary mr-1">Текстовый документ (.txt)
                     </button>
-                    <button type="button" class="btn btn-secondary mr-1"
-                            onclick="$(this).toggleClass('btn-primary btn-secondary');">Таблица CSV (.csv)
+                    <button type="button" id="select-savecsv" class="btn btn-secondary mr-1">Таблица CSV (.csv)
                     </button>
-                    <button type="button" class="btn btn-secondary mr-1"
-                            onclick="$(this).toggleClass('btn-primary btn-secondary');">SQLite (.sqlite)
+                    <button type="button" id="select-savesqlite" class="btn btn-secondary mr-1">SQLite (.db)
                     </button>
                 </div>
             </div>

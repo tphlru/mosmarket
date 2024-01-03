@@ -1,0 +1,4 @@
+future~=0.18.3
+eel~=0.16.0
+pandas~=2.1.4
+moexalgo~=1.0.1
