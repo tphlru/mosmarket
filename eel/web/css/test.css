@@ -1,0 +1,7 @@
+.dataTables_filter {
+    visibility: hidden;
+}
+
+.dataTables_empty {
+    display: none;
+}
