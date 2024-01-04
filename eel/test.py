@@ -1,6 +1,8 @@
 import sys
 import os
 import pathlib
+import logging as logger
+from retry import retry
 import time
 
 import tkinter as tk
@@ -13,38 +15,56 @@ from moexalgo import Ticker, Market
 from datetime import date, datetime
 from datetime import timedelta
 import sqlite3
+import threading
 
-# logfile = open('program_output.txt', 'w')
-# sys.stdout = logfiles
-
-# sys.stderr = logfile
+from timeout_function_decorator import timeout
 
 eel.init('web', allowed_extensions=['.js', '.html', '.css'])
 eel.say_hello_js('connected!')  # Call a Javascript function
 
+
+class CustomLogHandler(logger.Handler):
+    def emit(self, record):
+        logline = self.format(record)
+        eel.upd_log(logline + "\n")
+
+
+file_log = logger.FileHandler('logfile.log')
+console_out = logger.StreamHandler()
+custom_handler = CustomLogHandler()
+
+logger.basicConfig(handlers=(file_log, console_out, custom_handler),
+                   format='[%(asctime)s | %(levelname)s]: %(message)s',
+                   datefmt='%m/%d/%Y %H:%M:%S', level=logger.DEBUG)
+
+# level=logger.INFO / level=logger.DEBUG
+
+logger.info(" >>> ---- Program restarted! ---- <<< ")
+
 filter_list = [False, False, False]
 stocks_to_fetch = []
 savetypes = {'txt': True, 'csv': False, 'sqlite': False}
-workdirpath = "./workdir/"
+workdirpath = "./algopack-data/"
 
 
 def check_and_format_path(path):
     # Check if the path is valid
     if isinstance(path, str) and os.path.isdir(path):
-        print(f"The path {path} is valid.")
+        logger.info(f"The path {path} is valid!")
         return path
     else:
-        print(f"The path {path} is not valid.")
+        logger.warning(f"The path {path} is NOT valid!")
         # Try to format the path using pathlib
         try:
             formatted_path = pathlib.Path(path).resolve()
-            print(f"The formatted path is {formatted_path}.")
+            logger.info(f"The formatted path is {formatted_path}.")
         except Exception as e:
-            print(f"Could not format the path. Error: {e}")
+            logger.warning(f"Could not format the path. Error: {e}")
             return "Invalid path!"
         return formatted_path if os.path.exists(formatted_path) else "Invalid path!"
 
 
+@timeout(5)
 def get_tickers():
     stocks = Market('stocks')
     stocks = stocks.tickers()
@@ -86,11 +106,14 @@ def createworkdir(parentdirpath):
         newdirpath = os.path.join(parentdirpath, "algopack-data")
         if not os.path.exists(newdirpath):
             os.makedirs(newdirpath)
-            print(f"Directory created at {newdirpath}")
+            logger.info(f"Внутрення рабочая папка создана успешно: {newdirpath}")
         else:
-            print("Directory already exists!")
-    except Exception as error:
-        print(f"Directory creation failed: {error}")
+            logger.info(f"Автоматически созданная рабочая папка уже существует в этом расположении: {newdirpath}")
+    except Exception as e:
+        logger.error(f"Ошибка создания директории хранения данных: {e}")
+        logger.warning(f"Будет использован родительский путь: {parentdirpath}")
+        return parentdirpath
+    return newdirpath
 
 
 @eel.expose
@@ -105,11 +128,12 @@ def select_workdir(manualpath=None):
         workdirpath = filedialog.askdirectory()
         sourcepath = workdirpath
         eel.loadWorkdirPath(check_and_format_path(workdirpath))
-
     if workdirpath == "Invalid path!":
         callalertpy("Указан неправильный путь: " + sourcepath)
-
-    print(workdirpath)
+        logger.error((f"""{workdirpath} Указанный путь не является валидным путём
+                    файловой системы, исправьте или создайте его вручную: {sourcepath}"""))
+    else:
+        logger.info(f"Родительский путь рабочей директории установлен: {workdirpath}")
 
 
 PrevTotalStocks = pd.DataFrame()
@@ -124,14 +148,23 @@ def upd_total_stocks(selectedlist):
 
     if updated:
         stocks_to_fetch = PrevTotalStocks['SECID'].values.tolist()
-        print(stocks_to_fetch)
+        logger.info(f"Выбранные акции для загрузки: {', '.join(map(str, stocks_to_fetch))}")
         total_stocks = total_stocks.to_json(orient='records', force_ascii=False)
         eel.totalUpd(total_stocks)
         return
 
 
-print("start")
-savedtickers = get_tickers()
+def tickers_starter():
+    global savedtickers
+    savedtickers = pd.DataFrame(columns=["SECID", "SHORTNAME", "ISIN", "LISTLEVEL"])
+    try:
+        savedtickers = get_tickers()
+    except TimeoutError:
+        logger.error("Moexalgo не отвечает! Проверьте блокировку по региону и перезапустите ещё раз!")
+
+
+threading.Thread(target=tickers_starter).start()
+logger.info("start")
 
 
 @eel.expose  # Expose this function to Javascript\
@@ -148,17 +181,17 @@ def button_click(btn_id, status):
     if btn_id in matchlist.keys():
         filter_list[matchlist[btn_id]] = matchlist2[status]
         sort_tickers(filter_list, savedtickers)
-        print(filter_list)
+        logger.debug(filter_list)
     if btn_id == "selectpath":
         select_workdir()
-    print(f'Button ID: {btn_id}, Status: {status}')
+    logger.debug(f'Button ID: {btn_id}, Status: {status}')
 
 
 @eel.expose
 def select_savetype_upd(savetypeslist):
     global savetypes
     savetypes = {'txt': savetypeslist[0], 'csv': savetypeslist[1], 'sqlite': savetypeslist[2]}
-    print(savetypes)
+    logger.debug(savetypes)
 
 
 eel.start('index.html', mode='chrome', size=(1200, 500), port=0)

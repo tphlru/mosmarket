@@ -54,6 +54,10 @@ function addDeleteBtn() {
 
 addDeleteBtn()
 
+$.fn.scrollBottom = function () {
+    return $(this).scrollTop($(this)[0].scrollHeight);
+};
+
 // Handle delete button click
 $('#totalTable').on('click', '.delete-btn', function () {
     let secid_to_del = $(this).closest('tr').find('td:eq(0)').text();
@@ -72,6 +76,7 @@ $('#unselectall').on('click', function () {
     });
     table.draw()
 })
+
 
 eel.expose(callalert)
 
@@ -97,6 +102,12 @@ function loadWorkdirPath(pathchoosen) {
 // Link loadWorkdirPath func to onchange of the input element
 document.getElementById("working_dir_path").onchange = loadWorkdirPath;
 
+
+eel.expose(upd_log)
+
+function upd_log(newdata) {
+    $("#logarea").append(newdata).scrollBottom();
+}
 
 eel.expose(totalUpd);               // Expose this function to Python
 function totalUpd(total_df) {
