@@ -40,6 +40,17 @@ $(document).ready(function () {
 
 });
 
+
+function send_dates() {
+    let startdate = $('#startdate').val();
+    let enddate = $('#enddate').val();
+    let dateslist = [startdate, enddate]
+    eel.set_dates(dateslist);
+}
+
+document.getElementById("startdate").onchange = send_dates;
+document.getElementById("enddate").onchange = send_dates;
+
 // Add delete button to each row
 function addDeleteBtn() {
     $('#totalTable tr').each(function () {

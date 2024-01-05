@@ -45,6 +45,7 @@ filter_list = [False, False, False]
 stocks_to_fetch = []
 savetypes = {'txt': True, 'csv': False, 'sqlite': False}
 workdirpath = "./algopack-data/"
+dataperiod = [datetime.now().date() - timedelta(days=1), datetime.now().date()]
 
 
 def check_and_format_path(path):
@@ -192,6 +193,14 @@ def select_savetype_upd(savetypeslist):
     global savetypes
     savetypes = {'txt': savetypeslist[0], 'csv': savetypeslist[1], 'sqlite': savetypeslist[2]}
     logger.debug(savetypes)
+
+
+@eel.expose
+def set_dates(dateslist):
+    global dataperiod
+    dataperiod = [datetime.strptime(strdate, '%d-%m-%Y') for strdate in dateslist]
+    logger.debug(dateslist)
+    logger.debug(dataperiod)
 
 
 eel.start('index.html', mode='chrome', size=(1200, 500), port=0)
