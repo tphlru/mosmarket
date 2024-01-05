@@ -51,6 +51,13 @@ function send_dates() {
 document.getElementById("startdate").onchange = send_dates;
 document.getElementById("enddate").onchange = send_dates;
 
+function send_timeframe() {
+    eel.set_timeframe(document.getElementById("timeframe_select").value)
+}
+
+document.getElementById("timeframe_select").onchange = send_timeframe;
+
+
 // Add delete button to each row
 function addDeleteBtn() {
     $('#totalTable tr').each(function () {

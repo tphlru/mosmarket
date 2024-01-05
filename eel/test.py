@@ -46,6 +46,7 @@ stocks_to_fetch = []
 savetypes = {'txt': True, 'csv': False, 'sqlite': False}
 workdirpath = "./algopack-data/"
 dataperiod = [datetime.now().date() - timedelta(days=1), datetime.now().date()]
+timeframe = '5m'
 
 
 def check_and_format_path(path):
@@ -183,7 +184,7 @@ def button_click(btn_id, status):
         filter_list[matchlist[btn_id]] = matchlist2[status]
         sort_tickers(filter_list, savedtickers)
         logger.debug(filter_list)
-    if btn_id == "selectpath":
+    elif btn_id == "selectpath":
         select_workdir()
     logger.debug(f'Button ID: {btn_id}, Status: {status}')
 
@@ -201,6 +202,18 @@ def set_dates(dateslist):
     dataperiod = [datetime.strptime(strdate, '%d-%m-%Y') for strdate in dateslist]
     logger.debug(dateslist)
     logger.debug(dataperiod)
+
+
+@eel.expose
+def set_timeframe(timeframeselect):
+    matchlist = {
+        '1m': '1 минута',
+        '5m': '5 минут',
+        '10m': '10 минут',
+    }
+    global timeframe
+    timeframe = timeframeselect
+    logger.info(f"Выбран шаг данных (timeframe): {matchlist[timeframeselect]} - {timeframeselect}")
 
 
 eel.start('index.html', mode='chrome', size=(1200, 500), port=0)
