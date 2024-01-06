@@ -125,16 +125,17 @@
                 <option value="1m">1 минута</option>
                 <option value="5m" selected>5 минут</option>
                 <option value="10m">10 минут</option>
+                <option value="60m">60 минут</option>
             </select>
         </div>
         <!-- Second Dropdown -->
         <div class="col">
-            <label for="saveformat_select">Выберите форматы сохранения:</label>
+            <label for="saveformat_select">Выберите дополнительные форматы сохранения:</label>
             <div id="saveformat_select" class="d-flex align-items-center">
                 <div>
-                    <button type="button" id="select-savetxt" class="btn btn-primary mr-1">Текстовый документ (.txt)
+                    <button disabled type="button" id="select-savecsv" class="btn btn-primary mr-1">Таблица CSV (.csv)
                     </button>
-                    <button type="button" id="select-savecsv" class="btn btn-secondary mr-1">Таблица CSV (.csv)
+                    <button type="button" id="select-savetxt" class="btn btn-secondary mr-1">Текстовый документ (.txt)
                     </button>
                     <button type="button" id="select-savesqlite" class="btn btn-secondary mr-1">SQLite (.db)
                     </button>

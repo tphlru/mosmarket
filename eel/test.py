@@ -43,7 +43,7 @@ logger.info(" >>> ---- Program restarted! ---- <<< ")
 
 filter_list = [False, False, False]
 stocks_to_fetch = []
-savetypes = {'txt': True, 'csv': False, 'sqlite': False}
+savetypes = {'csv': True, 'txt': False, 'sqlite': False}
 workdirpath = "./algopack-data/"
 dataperiod = [datetime.now().date() - timedelta(days=1), datetime.now().date()]
 timeframe = '5m'
@@ -145,11 +145,12 @@ PrevTotalStocks = pd.DataFrame()
 def upd_total_stocks(selectedlist):
     total_stocks = savedtickers[savedtickers['SECID'].isin(selectedlist)]
 
-    global PrevTotalStocks
+    global PrevTotalStocks, stocks_to_fetch
     PrevTotalStocks, updated = update_dataframe(PrevTotalStocks, total_stocks)
 
     if updated:
         stocks_to_fetch = PrevTotalStocks['SECID'].values.tolist()
+        logger.debug(stocks_to_fetch)
         logger.info(f"Выбранные акции для загрузки: {', '.join(map(str, stocks_to_fetch))}")
         total_stocks = total_stocks.to_json(orient='records', force_ascii=False)
         eel.totalUpd(total_stocks)
@@ -186,13 +187,15 @@ def button_click(btn_id, status):
         logger.debug(filter_list)
     elif btn_id == "selectpath":
         select_workdir()
+    elif btn_id == "launch":
+        launcher()
     logger.debug(f'Button ID: {btn_id}, Status: {status}')
 
 
 @eel.expose
 def select_savetype_upd(savetypeslist):
     global savetypes
-    savetypes = {'txt': savetypeslist[0], 'csv': savetypeslist[1], 'sqlite': savetypeslist[2]}
+    savetypes = {'csv': savetypeslist[0], 'txt': savetypeslist[1], 'sqlite': savetypeslist[2]}
     logger.debug(savetypes)
 
 
@@ -214,6 +217,12 @@ def set_timeframe(timeframeselect):
     global timeframe
     timeframe = timeframeselect
     logger.info(f"Выбран шаг данных (timeframe): {matchlist[timeframeselect]} - {timeframeselect}")
+    logger.debug(timeframeselect)
+
+
+def launcher():
+    eel.change_startstop()
+    pass
 
 
 eel.start('index.html', mode='chrome', size=(1200, 500), port=0)

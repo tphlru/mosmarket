@@ -214,7 +214,7 @@ btnids.forEach(function (id) {
 );
 
 
-let select_savetype = ["select-savetxt", "select-savecsv", "select-savesqlite"]
+let select_savetype = ["select-savecsv", "select-savetxt", "select-savesqlite"]
 let savetypelist = [true, false, false]
 
 select_savetype.forEach(function (id) {
@@ -231,6 +231,18 @@ select_savetype.forEach(function (id) {
         }
     }
 });
+
+
+eel.expose(change_startstop)
+
+function change_startstop() {
+    let launchButton = document.getElementById("launch")
+    if (launchButton.textContent === "Принудительный останов") {
+        launchButton.textContent = "Запуск";
+    } else {
+        launchButton.textContent = "Принудительный останов";
+    }
+}
 
 
 eel.expose(gentable);               // Expose this function to Python
