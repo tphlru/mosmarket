@@ -16,6 +16,8 @@ from datetime import date, datetime
 from datetime import timedelta
 import sqlite3
 import threading
+import pandas as pd
+import csv
 
 from timeout_function_decorator import timeout
 
@@ -35,7 +37,7 @@ custom_handler = CustomLogHandler()
 
 logger.basicConfig(handlers=(file_log, console_out, custom_handler),
                    format='[%(asctime)s | %(levelname)s]: %(message)s',
-                   datefmt='%m/%d/%Y %H:%M:%S', level=logger.DEBUG)
+                   datefmt='%m/%d/%Y %H:%M:%S', level=logger.INFO)
 
 # level=logger.INFO / level=logger.DEBUG
 
@@ -44,7 +46,7 @@ logger.info(" >>> ---- Program restarted! ---- <<< ")
 filter_list = [False, False, False]
 stocks_to_fetch = []
 savetypes = {'csv': True, 'txt': False, 'sqlite': False}
-workdirpath = "./algopack-data/"
+workdirpath = "./"
 dataperiod = [datetime.now().date() - timedelta(days=1), datetime.now().date()]
 timeframe = '5m'
 
@@ -185,11 +187,11 @@ def button_click(btn_id, status):
         filter_list[matchlist[btn_id]] = matchlist2[status]
         sort_tickers(filter_list, savedtickers)
         logger.debug(filter_list)
-    elif btn_id == "selectpath":
+    if btn_id == "selectpath":
         select_workdir()
-    elif btn_id == "launch":
+    if btn_id == "launch":
         launcher()
-    logger.debug(f'Button ID: {btn_id}, Status: {status}')
+    logger.debug(f'Button ID: "{btn_id}", Status: {status}')
 
 
 @eel.expose
@@ -220,9 +222,108 @@ def set_timeframe(timeframeselect):
     logger.debug(timeframeselect)
 
 
+def savedf_to_file(datatosave, saveformats, filename, loadup):
+    filename = os.path.join(workdirpath, filename)
+    if loadup:
+        m = 'a'
+    else:
+        m = 'w'
+
+    try:
+        logger.info(f"Сохранение {filename} в  csv ...")
+        datatosave.to_csv(f"{filename}.csv", index=False, mode=m)
+    except Exception as e:
+        logger.critical(f"""Ошибка во время сохранения в базовый формат (csv): {e} .
+            Преобразование в дополнительные форматы невозможно, программа принудительно завершит работу!""")
+        sys.exit(f"""Ошибка во время сохранения в базовый формат (csv): {e} .
+            Преобразование в дополнительные форматы невозможно, программа принудительно завершит работу!""")
+    else:
+        logger.info(f"{filename} сохранён в базовый формат (csv) успешно!")
+
+    if saveformats['txt'] is True:
+        with open(f"{filename}.csv", 'r') as csv_file:
+            os.remove(filename)
+            with open(f"{filename}.txt", 'w') as txt_file:
+                csv_reader = csv.reader(csv_file)
+                for row in csv_reader:
+                    txt_file.write('\t'.join(row) + '\n')
+
+
+def load(stockname, fromdate, todate, datalimit, tperiod, sformat, loadup):
+    tickobj = Ticker(stockname)
+    df = pd.DataFrame()
+
+    # date.today() # or date(2022, 12, 31), or "today"
+
+    total_days = int((todate - fromdate).days)
+    logger.info(f"Загружаем акциию {stockname} . Будет загружено данных за {total_days} дней")
+
+    real_limit = 100000  # Просто объявляем переменную.
+    # 25000 # А вот это уже действительно лимит. Можно поменять.
+
+    # Пока кол-во полученных данных в порции меньше или равно указанному лимиту.
+    # Внимание! Самый последний день может быть обрезан.
+    while real_limit >= datalimit:
+        cnd = tickobj.candles(date=fromdate, till_date=todate, limit=datalimit, period=tperiod)
+        tempdf = pd.DataFrame(cnd, columns=["begin", "end", "open", "high", "low", "close", "value", "volume"])
+
+        # get the last day of tempdf, real_limit
+        real_limit = len(tempdf['begin'])
+        logger.debug(f"New iteration! real limit = {real_limit}")
+
+        # get the indexof the last day in "begin" column
+        # this is the short version of the code above
+        last_day = tempdf['begin'].tolist()[-1]
+
+        # Find the last one index of "minus_one" day in the array(info)
+        # НО! Может случится так, что мы его и не найдём, например предыдущий день - выходной и его нету в массиве.
+        # В таком случае будет keyError, тогда ищем предыдущий день. И тд.
+        wholeday_index, minus_one = None, None
+        for attempt in range(1, 10):  # 10 attempts. Just in case, for example a week of New Year's vacation )))
+            try:
+                minus_one = last_day - timedelta(days=attempt)
+                wholeday_index = tempdf[tempdf['begin'] == minus_one].index[-1]
+                logger.debug(f"Индекс последнего полного дня выборки = {wholeday_index}")
+            except Exception:
+                pass
+            else:
+                break  # If no error, break the loop
+
+        # So now let's cut not whole-day lines from array(info).
+        tempdf = tempdf[:wholeday_index + 1]
+        logger.info(f"Загружено данных с {tempdf['begin'].tolist()[0]} по {tempdf['begin'].tolist()[-1]}")
+        fromdate = minus_one + timedelta(
+            days=1)  # start day for next iteration. +1 day is to avoid getting the same day
+        fromdate = fromdate.normalize()
+        df = pd.concat([df, tempdf], ignore_index=True, sort=False)  # append to df
+
+        logger.info(f"Прогресс загрузки акции: {(total_days - (todate - (tempdf['begin'].tolist()[-1].to_pydatetime())).days) / total_days * 100} %")
+
+    # ВСЁ! Все данные получены и добавлены в df.
+    # Но данных за последний день скорее всего не получилось (или просто не получены, или обрезаны как неполные)
+    # Поэтому я предлагаю взять дату из последней строки как начальную(но надо прибавить к ней 1 день, избегая повтор),
+    # а дату "end" как конечную, и одним махом получить весь "хвост".
+
+    # Вот так:
+    tempdf = tickobj.candles(date=df['begin'].tolist()[-1] + timedelta(days=1), till_date=todate)
+    tempdf = pd.DataFrame(tempdf, columns=["begin", "end", "open", "high", "low", "close", "value", "volume"])
+    df = pd.concat([df, tempdf], ignore_index=True, sort=False)  # И дописываем в конец.
+    try:
+        logger.info(f"Дозагружено данных с {tempdf['begin'].tolist()[0]} по {tempdf['begin'].tolist()[-1]}")
+    except Exception:
+        logger.info(f"Акция {stockname} загружена!")
+
+    savedf_to_file(df, sformat, stockname, loadup)
+
+
 def launcher():
     eel.change_startstop()
-    pass
+    global workdirpath
+    if not "algopack-data" in workdirpath:
+        workdirpath = createworkdir(workdirpath)
+    logger.debug(stocks_to_fetch)
+    for stc in stocks_to_fetch:
+        load(stc, dataperiod[0], dataperiod[1], 25000, timeframe, savetypes, False)
 
 
 eel.start('index.html', mode='chrome', size=(1200, 500), port=0)

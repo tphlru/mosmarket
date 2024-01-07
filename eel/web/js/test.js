@@ -214,6 +214,7 @@ btnids.forEach(function (id) {
 );
 
 
+
 let select_savetype = ["select-savecsv", "select-savetxt", "select-savesqlite"]
 let savetypelist = [true, false, false]
 
