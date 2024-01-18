@@ -214,7 +214,6 @@ btnids.forEach(function (id) {
 );
 
 
-
 let select_savetype = ["select-savecsv", "select-savetxt", "select-savesqlite"]
 let savetypelist = [true, false, false]
 
@@ -260,3 +259,13 @@ function gentable(data) {
     }
 }
 
+
+eel.expose(updateProgressBar)
+
+// Define a function to update the value and style of the progress bar
+function updateProgressBar(value) {
+    let progressBar = document.getElementById("progressbar");
+    progressBar.setAttribute("aria-valuenow", value);
+    progressBar.style.width = value + "%";
+    progressBar.textContent = value + "%" + " - Загрузка ";
+}

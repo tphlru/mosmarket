@@ -123,9 +123,9 @@
             <label for="timeframe_select">Выберите частоту данных:</label>
             <select id="timeframe_select" class="form-control">
                 <option value="1m">1 минута</option>
-                <option value="5m" selected>5 минут</option>
-                <option value="10m">10 минут</option>
+                <option value="10m" selected>10 минут</option>
                 <option value="60m">60 минут</option>
+                <option value="1D">1 день</option>
             </select>
         </div>
         <!-- Second Dropdown -->
@@ -137,8 +137,8 @@
                     </button>
                     <button type="button" id="select-savetxt" class="btn btn-secondary mr-1">Текстовый документ (.txt)
                     </button>
-                    <button type="button" id="select-savesqlite" class="btn btn-secondary mr-1">SQLite (.db)
-                    </button>
+                    <!--<button type="button" id="select-savesqlite" class="btn btn-secondary mr-1">SQLite (.db)-->
+                    <!--</button>-->
                 </div>
             </div>
         </div>
@@ -149,7 +149,7 @@
             <label for="working_dir_path">Рабочая директория:</label>
             <div class="input-group pr-3">
                 <input type="text" id="working_dir_path" class="form-control"
-                       placeholder="Выберите путь к рабочей директории"
+                       placeholder="./algopack-data"
                        aria-describedby="selectpath">
                 <div class="input-group-append">
                     <button class="btn btn-info" type="button" id="selectpath">Указать</button>
