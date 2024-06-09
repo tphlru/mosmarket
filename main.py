@@ -2,7 +2,6 @@ import csv
 import logging
 import os
 import pathlib
-import sys
 import threading
 import tkinter as tk
 from datetime import datetime
@@ -47,7 +46,7 @@ savetypes = {'csv': True, 'txt': False, 'sqlite': False}
 workdirpath = "./"
 dataperiod = [datetime.now().date() - timedelta(days=1), datetime.now().date()]
 timeframe = '10m'
-progresspoints = 100
+progresspoints = 100.00
 
 
 def check_and_format_path(path):
@@ -69,13 +68,11 @@ def check_and_format_path(path):
 
 @timeout(5)
 def get_tickers():
-    stocks = Market('stocks')
-    stocks = stocks.tickers()
+    stocks = Market('stocks').tickers()
     stocks = pd.DataFrame(stocks, columns=["SECID", "SHORTNAME", "ISIN", "LISTLEVEL"])
-
     stocks_json = stocks.to_json(orient='records', force_ascii=False)
     eel.gentable(stocks_json)  # Call a Javascript function
-
+    # logger.debug(Market('stocks').tickers())
     return stocks
 
 
@@ -109,7 +106,7 @@ def createworkdir(parentdirpath):
         newdirpath = os.path.join(parentdirpath, "algopack-data")
         if not os.path.exists(newdirpath):
             os.makedirs(newdirpath)
-            logger.info(f"Внутрення рабочая папка создана успешно: {newdirpath}")
+            logger.info(f"Внутренняя рабочая папка создана успешно: {newdirpath}")
         else:
             logger.info(f"Автоматически созданная рабочая папка уже существует в этом расположении: {newdirpath}")
     except Exception as e:
@@ -208,10 +205,11 @@ def set_dates(dateslist):
 
 @eel.expose
 def set_timeframe(timeframeselect):
+    # Период в минутах 1, 10, 60 или '1m', '10m', '1h', 'D', 'W', 'M', 'Q'; по умолчанию 60
     matchlist = {
         '1m': '1 минута',
-        '5m': '5 минут',
         '10m': '10 минут',
+        '1h': '60 минут',
         '1D': '1 день',
     }
     global timeframe
@@ -243,7 +241,10 @@ def savedf_to_file(datatosave, saveformats, filename, loadup):
     if saveformats['txt'] is True:
         logger.info(f"Преобразование {filename} в  дополнительный формат (txt) ...")
         with open(f"{filename}.csv", 'r') as csv_file:
-            os.remove(filename)
+            try:
+                os.remove(f"{filename}.txt")
+            except FileNotFoundError:
+                pass
             with open(f"{filename}.txt", 'w') as txt_file:
                 csv_reader = csv.reader(csv_file)
                 try:
@@ -272,10 +273,7 @@ def load(stockname, fromdate, todate, datalimit, tperiod, sformat, loadup):
     while real_limit >= datalimit:
         cnd = tickobj.candles(date=fromdate, till_date=todate, limit=datalimit, period=tperiod)
         tempdf = pd.DataFrame(cnd, columns=["begin", "end", "open", "high", "low", "close", "value", "volume"])
-
-        if tempdf.empty:
-            logger.debug("Нет данных в пакете ...")
-            continue
+        # logger.debug(tempdf)
 
         # get the last day of tempdf, real_limit
         real_limit = len(tempdf['begin'])
@@ -334,13 +332,13 @@ def load(stockname, fromdate, todate, datalimit, tperiod, sformat, loadup):
         fromdate = minus_one + timedelta(
             days=1)  # start day for next iteration. +1 day is to avoid getting the same day
         fromdate = fromdate.normalize()
-        if not df.empty and not tempdf.empty:
+        if not tempdf.empty:
             df = pd.concat([df, tempdf], ignore_index=True, sort=False)  # append to df
             global progresspoints
             progress = ((total_days - (
-                    todate - (tempdf['begin'].tolist()[-1].to_pydatetime())).days) / total_days)
+                todate - (tempdf['begin'].tolist()[-1].to_pydatetime())).days) / total_days)
         else:
-            df = df if not tempdf.empty else tempdf
+            # df = df if not tempdf.empty else tempdf
             if 'progress' not in locals() and 'progress' not in globals():
                 progress = 0
 
@@ -351,29 +349,21 @@ def load(stockname, fromdate, todate, datalimit, tperiod, sformat, loadup):
             f"Общий прогресс загрузки: {round(progress * progresspoints, 2)} %")
         eel.updateProgressBar(str(round(progress * progresspoints, 2)))
 
-        return None
-
-    if df.empty:
-        logger.error(f""" Нет данных по акции {stockname} за указанный период. Акция будет пропущена.
-        Пожалуйста, исправьте настройки.""")
-        return 'skip'
-
     # ВСЁ! Все данные получены и добавлены в df.
     # Но данных за последний день скорее всего не получилось (или просто не получены, или обрезаны как неполные)
     # Поэтому я предлагаю взять дату из последней строки как начальную(но надо прибавить к ней 1 день, избегая повтор),
     # а дату "end" как конечную, и одним махом получить весь "хвост".
 
     # Вот так:
+    logger.debug(df)
     try:
         tempdf = tickobj.candles(date=df['begin'].tolist()[-1] + timedelta(days=1), till_date=todate)
         tempdf = pd.DataFrame(tempdf, columns=["begin", "end", "open", "high", "low", "close", "value", "volume"])
     except Exception:
         tempdf = pd.DataFrame(columns=["begin", "end", "open", "high", "low", "close", "value", "volume"])
 
-    if not df.empty and not tempdf.empty:
+    if not tempdf.empty:
         df = pd.concat([df, tempdf], axis=0, ignore_index=True, sort=False)
-    else:
-        df = df if not tempdf.empty else tempdf
 
     try:
         logger.info(f"Дозагружено данных с {tempdf['begin'].tolist()[0]} по {tempdf['begin'].tolist()[-1]}")
@@ -384,10 +374,9 @@ def load(stockname, fromdate, todate, datalimit, tperiod, sformat, loadup):
     if savestatus == "skip":
         return  # skip
 
-    progresspoints = progresspoints + progresspoints
-
 
 def launcher():
+    global progresspoints
     if not stocks_to_fetch:
         logger.error("Сначала выберите акции для загрузки в таблице выше!")
         return
@@ -397,12 +386,18 @@ def launcher():
         workdirpath = createworkdir(workdirpath)
     logger.debug(stocks_to_fetch)
     progresspoints = 100 / len(stocks_to_fetch)
-
+    logger.debug("progresspoints " + str(progresspoints))
     for stc in stocks_to_fetch:
-        threading.Thread(target=load,
-                         args=(stc, dataperiod[0], dataperiod[1], 25000, timeframe, savetypes, False)).start()
-        # loadres = load(stc, dataperiod[0], dataperiod[1], 25000, timeframe, savetypes, False)
-        logger.info(f"Данные по всем акциям загружены и сохранены в {workdirpath}")
+        # threading.Thread(target=load,
+        #                  args=(stc, dataperiod[0], dataperiod[1], 25000, timeframe, savetypes, False)).start()
+        # time.sleep(3)
+        try:
+            load(stc, dataperiod[0], dataperiod[1], 25000, timeframe, savetypes, False)
+        except Exception as e:
+            logger.critical(e)
+            logger.critical("Критическая ошибка! Попробуйте ещё раз. Если ошибка повторится, сообщите разработчику.")
+        logger.info(f"Данные по этой акциии загружены и сохранены в {workdirpath}")
+    logger.info("Заргузка завершена!")
 
 
-eel.start('index.html', mode='chrome', size=(1200, 500), port=0)
+eel.start('index.html', mode='web', size=(1200, 500), port=0)

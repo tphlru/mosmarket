@@ -1,4 +1,6 @@
 future~=0.18.3
 eel~=0.16.0
-pandas~=2.1.4
+pandas~=2.2.1
 moexalgo~=1.0.1
+nixtlats~=0.2.0
+timeout_function_decorator
