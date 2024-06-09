@@ -47,6 +47,7 @@ workdirpath = "./"
 dataperiod = [datetime.now().date() - timedelta(days=1), datetime.now().date()]
 timeframe = '10m'
 progresspoints = 100.00
+mainprogress = 0
 
 
 def check_and_format_path(path):
@@ -220,7 +221,7 @@ def set_timeframe(timeframeselect):
 
 def savedf_to_file(datatosave, saveformats, filename, loadup):
     filename = os.path.join(workdirpath, filename)
-    if len(datatosave) < 5:
+    if datatosave.empty:
         logger.warning("Объём данных для сохранения слишком мал. Сохранение акции отменено.")
         return
     if loadup:
@@ -258,6 +259,9 @@ def savedf_to_file(datatosave, saveformats, filename, loadup):
 def load(stockname, fromdate, todate, datalimit, tperiod, sformat, loadup):
     tickobj = Ticker(stockname)
     df = pd.DataFrame()
+    progress = 0
+    global progresspoints
+    global mainprogress
 
     # date.today() # or date(2022, 12, 31), or "today"
 
@@ -334,9 +338,8 @@ def load(stockname, fromdate, todate, datalimit, tperiod, sformat, loadup):
         fromdate = fromdate.normalize()
         if not tempdf.empty:
             df = pd.concat([df, tempdf], ignore_index=True, sort=False)  # append to df
-            global progresspoints
             progress = ((total_days - (
-                todate - (tempdf['begin'].tolist()[-1].to_pydatetime())).days) / total_days)
+                todate - (tempdf['begin'].tolist()[-1].to_pydatetime())).days) / total_days) * 100
         else:
             # df = df if not tempdf.empty else tempdf
             if 'progress' not in locals() and 'progress' not in globals():
@@ -344,10 +347,10 @@ def load(stockname, fromdate, todate, datalimit, tperiod, sformat, loadup):
 
         global progresspoints
         logger.info(
-            f"Прогресс загрузки акции: {round(progress * 100, 2)} %")
+            f"Прогресс загрузки акции: {round(progress, 2)} %")
         logger.info(
-            f"Общий прогресс загрузки: {round(progress * progresspoints, 2)} %")
-        eel.updateProgressBar(str(round(progress * progresspoints, 2)))
+            f"Общий прогресс загрузки: {round(mainprogress + (progress / (100 / progresspoints)), 2)} %")
+        eel.updateProgressBar(str(round(mainprogress + (progress / (100 / progresspoints)), 2)))
 
     # ВСЁ! Все данные получены и добавлены в df.
     # Но данных за последний день скорее всего не получилось (или просто не получены, или обрезаны как неполные)
@@ -377,6 +380,8 @@ def load(stockname, fromdate, todate, datalimit, tperiod, sformat, loadup):
 
 def launcher():
     global progresspoints
+    global mainprogress
+    mainprogress = 0
     if not stocks_to_fetch:
         logger.error("Сначала выберите акции для загрузки в таблице выше!")
         return
@@ -391,13 +396,24 @@ def launcher():
         # threading.Thread(target=load,
         #                  args=(stc, dataperiod[0], dataperiod[1], 25000, timeframe, savetypes, False)).start()
         # time.sleep(3)
-        try:
-            load(stc, dataperiod[0], dataperiod[1], 25000, timeframe, savetypes, False)
-        except Exception as e:
-            logger.critical(e)
-            logger.critical("Критическая ошибка! Попробуйте ещё раз. Если ошибка повторится, сообщите разработчику.")
+        load(stc, dataperiod[0], dataperiod[1], 25000, timeframe, savetypes, False)
+        mainprogress += round(progresspoints, 2)
+        eel.updateProgressBar(str(round(mainprogress)))
+        # try:
+        #     load(stc, dataperiod[0], dataperiod[1], 25000, timeframe, savetypes, False)
+        #     mainprogress += round(progresspoints, 2)
+        #     # eel.updateProgressBar(str(round(i + 1 * progresspoints)))
+        # except Exception as e:
+        #     logger.critical(e)
+        #     logger.critical("Критическая ошибка! Попробуйте ещё раз. Если ошибка повторится, сообщите разработчику.")
         logger.info(f"Данные по этой акциии загружены и сохранены в {workdirpath}")
     logger.info("Заргузка завершена!")
+    eel.change_startstop()
 
 
-eel.start('index.html', mode='web', size=(1200, 500), port=0)
+try:
+    eel.start('index.html', mode='chrome', size=(1200, 500), port=0)
+    logger.warning("Запуск GUI в отдельном окне не удался - установка chrome/chromium не найдена в системе!")
+    logger.info("Будет выполнена попытка запуска GUI во встроенном бразере.")
+except OSError:
+    eel.start('index.html', mode='web', size=(1200, 500), port=0)

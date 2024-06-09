@@ -237,10 +237,12 @@ eel.expose(change_startstop)
 
 function change_startstop() {
     let launchButton = document.getElementById("launch")
-    if (launchButton.textContent === "Принудительный останов") {
+    if (launchButton.textContent === "Запущено ...") {
         launchButton.textContent = "Запуск";
+        launchButton.disabled = false;
     } else {
-        launchButton.textContent = "Принудительный останов";
+        launchButton.textContent = "Запущено ...";
+        launchButton.disabled = true;
     }
 }
 
