@@ -132,7 +132,9 @@ def select_workdir(manualpath=None):
         workdirpath = check_and_format_path(manualpath)
         eel.loadWorkdirPath(workdirpath)
     else:
-        tk.Tk().withdraw()
+        askwindow = tk.Tk()
+        askwindow.wm_attributes('-topmost', 1)
+        askwindow.withdraw()
         workdirpath = filedialog.askdirectory()
         sourcepath = workdirpath
         eel.loadWorkdirPath(check_and_format_path(workdirpath))
