@@ -396,24 +396,21 @@ def launcher():
         # threading.Thread(target=load,
         #                  args=(stc, dataperiod[0], dataperiod[1], 25000, timeframe, savetypes, False)).start()
         # time.sleep(3)
-        load(stc, dataperiod[0], dataperiod[1], 25000, timeframe, savetypes, False)
-        mainprogress += round(progresspoints, 2)
-        eel.updateProgressBar(str(round(mainprogress)))
-        # try:
-        #     load(stc, dataperiod[0], dataperiod[1], 25000, timeframe, savetypes, False)
-        #     mainprogress += round(progresspoints, 2)
-        #     # eel.updateProgressBar(str(round(i + 1 * progresspoints)))
-        # except Exception as e:
-        #     logger.critical(e)
-        #     logger.critical("Критическая ошибка! Попробуйте ещё раз. Если ошибка повторится, сообщите разработчику.")
-        logger.info(f"Данные по этой акциии загружены и сохранены в {workdirpath}")
+        try:
+            load(stc, dataperiod[0], dataperiod[1], 25000, timeframe, savetypes, False)
+            mainprogress += round(progresspoints, 2)
+            eel.updateProgressBar(str(round(mainprogress)))
+        except Exception as e:
+            logger.critical(e)
+            logger.critical("Критическая ошибка! Попробуйте ещё раз. Если ошибка повторится, сообщите разработчику.")
+        logger.info(f"Данные по этой акции загружены и сохранены в {workdirpath}")
     logger.info("Заргузка завершена!")
     eel.change_startstop()
 
 
 try:
     eel.start('index.html', mode='chrome', size=(1200, 500), port=0)
+except OSError:
     logger.warning("Запуск GUI в отдельном окне не удался - установка chrome/chromium не найдена в системе!")
     logger.info("Будет выполнена попытка запуска GUI во встроенном бразере.")
-except OSError:
     eel.start('index.html', mode='web', size=(1200, 500), port=0)

@@ -163,4 +163,7 @@ cython_debug/
 
 
 .fleet/
+.fleet
+/.fleet/
+mosenv
 eel/*.log
