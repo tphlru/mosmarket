@@ -206,7 +206,7 @@ def select_savetype_upd(savetypeslist):
 @eel.expose
 def set_dates(dateslist):
     global dataperiod
-    dataperiod = [datetime.strptime(strdate, '%d-%m-%Y') for strdate in dateslist]
+    dataperiod = [datetime.strptime(strdate, '%d-%m-%Y').replace(hour=23, minute=59) for strdate in dateslist]
     logger.debug(dateslist)
     logger.debug(dataperiod)
 
@@ -367,7 +367,7 @@ def load(stockname, fromdate, todate, datalimit, tperiod, sformat, loadup):
     # Вот так:
     logger.debug(df)
     try:
-        tempdf = tickobj.candles(date=df['begin'].tolist()[-1] + timedelta(days=1), till_date=todate)
+        tempdf = tickobj.candles(date=df['begin'].tolist()[-1] + timedelta(days=1), till_date=todate, period=tperiod)
         tempdf = pd.DataFrame(tempdf, columns=["begin", "end", "open", "high", "low", "close", "value", "volume"])
     except Exception:
         tempdf = pd.DataFrame(columns=["begin", "end", "open", "high", "low", "close", "value", "volume"])
@@ -377,7 +377,9 @@ def load(stockname, fromdate, todate, datalimit, tperiod, sformat, loadup):
 
     try:
         logger.info(f"Дозагружено данных с {tempdf['begin'].tolist()[0]} по {tempdf['begin'].tolist()[-1]}")
+        logger.info(f"Акция {stockname} загружена!")
     except Exception:
+        logger.warning("Дозагрузка за последний день не удалась, он будет пропущен.")
         logger.info(f"Акция {stockname} загружена!")
 
     savestatus = savedf_to_file(df, sformat, stockname, loadup)
