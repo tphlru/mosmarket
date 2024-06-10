@@ -17,6 +17,13 @@ eel.init('web', allowed_extensions=['.js', '.html', '.css'])
 eel.say_hello_js('connected!')  # Call a Javascript function
 
 
+# Uncomment this when building EXE for windows
+# f = open(os.devnull, 'w')
+# sys.stdout = f
+# sys.stderr = f
+# Uncomment this when building EXE for windows
+
+
 class CustomLogHandler(logging.Handler):
     def emit(self, record):
         logline = self.format(record)
@@ -409,8 +416,8 @@ def launcher():
 
 
 try:
-    eel.start('index.html', mode='chrome', size=(1200, 500), port=0)
+    eel.start('index.html', mode='chrome', size=(1200, 1000), port=0)
 except OSError:
     logger.warning("Запуск GUI в отдельном окне не удался - установка chrome/chromium не найдена в системе!")
     logger.info("Будет выполнена попытка запуска GUI во встроенном бразере.")
-    eel.start('index.html', mode='web', size=(1200, 500), port=0)
+    eel.start('index.html', mode='web', size=(1200, 1000), port=0)
